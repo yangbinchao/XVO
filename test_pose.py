@@ -33,11 +33,12 @@ parser.add_argument("--sequences", default=['09'], type=str, nargs='*', help="se
 parser.add_argument("--output-dir", default=None, type=str, help="Output directory for saving predictions in a big 3D numpy file")
 parser.add_argument("--img-exts", default=['png', 'jpg', 'bmp'], nargs='*', type=str, help="images extensions to glob")
 parser.add_argument("--rotation-mode", default='euler', choices=['euler', 'quat'], type=str)
+parser.add_argument("--output-gt", default=True, type=bool, help='output the kitti gtpose')
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 '''
-python3 test_pose.py ./checkpoints/KITTI-sfm\,epoch_size1000/09-30-11\:38/exp_pose_model_best.pth.tar --dataset-dir /data/yangbinchaodata/KITTI-odometry/dataset/ --output-dir ./results/pose/ --sequences 09
+python test_pose.py /root/yangbinchao/program/xvo/ckpts/KITTI-sfm/12-20-22:32/exp_pose_model_best.pth.tar --dataset-dir /data/yangbinchaodata/KITTI-odometry/dataset/ --output-dir ./test_result/pose/ --sequences 09
 '''
 @torch.no_grad()
 def main():
@@ -50,7 +51,7 @@ def main():
     # seq_length = int(weights['state_dict']['conv1.0.weight'].size(1)/3)
     # print("注意！seq_length {}".format(seq_length))
     seq_length = 3
-    pose_net = PoseExpNet(nb_ref_imgs=seq_length - 1).to(device)
+    pose_net = ShuffleNetV2(nb_ref_imgs=seq_length - 1).to(device)
     pose_net.load_state_dict(weights['state_dict'], strict=False)  # ybc , map_location={'cuda:1':'cuda:0'}
 
     dataset_dir = Path(args.dataset_dir)
@@ -130,7 +131,7 @@ def main():
 
             predictions_array[j] = final_poses
             gtpose_array[j] = sample['poses']  # ybc
-
+    
         ATE, RE = compute_pose_error(sample['poses'], final_poses)
         errors[j] = ATE, RE
 
@@ -138,7 +139,7 @@ def main():
     std_errors = errors.std(0)
     error_names = ['ATE','RE']
     print('')
-    print("Results")
+    print("=> Results")
     print("\t {:>10}, {:>10}".format(*error_names))
     print("mean \t {:10.4f}, {:10.4f}".format(*mean_errors))
     print("std \t {:10.4f}, {:10.4f}".format(*std_errors))
@@ -146,14 +147,34 @@ def main():
     usetime_net_mean = usetime_net.mean(0)
     usetime_net_std = usetime_net.std(0)
     usetime_trans_mean = usetime_trans.mean(0)
-    print("位姿所用时间：")
+    print("=> 位姿推理所用时间：")
     print("网络 mean \t {:10.4f}".format(*usetime_net_mean))
     print("网络 std \t {:10.4f}".format(*usetime_net_std))
     print("转换 mean \t {:10.4f}".format(*usetime_trans_mean))
 
     if args.output_dir is not None:
         np.save(output_dir/'predictions.npy', predictions_array)
-        np.save(output_dir / 'gtpose.npy', gtpose_array)  # ybc
+        np.save(output_dir /'gtpose.npy', gtpose_array)  
+    
+    data=np.load(args.output_dir+'/predictions.npy')  
+    for i in range(1,len(data)):
+        r = data[i-1,1]
+        data[i] = r[:,:3] @ data[i]
+        data[i,:,:,-1] = data[i,:,:,-1] + r[:,-1]
+    data = data.reshape(-1,12)
+    np.savetxt(args.output_dir+'/kitti_odometry_test/'+str(args.sequences[0])+'.txt',data,delimiter=' ') 
+    print('=> the result save on {}'.format(args.output_dir+'/kitti_odometry_test/'+str(args.sequences[0])+'.txt'))
+
+    if args.output_gt:
+        data=np.load(args.output_dir+'/gtpose.npy')  
+        for i in range(1,len(data)):
+            r = data[i-1,1]
+            data[i] = r[:,:3] @ data[i]
+            data[i,:,:,-1] = data[i,:,:,-1] + r[:,-1]
+        data = data.reshape(-1,12)
+        np.savetxt(args.output_dir+'/kitti_odometry_gt/'+str(args.sequences[0])+'.txt',data,delimiter=' ') 
+    print('=> the result save on {}'.format(args.output_dir+'/kitti_odometry_gt/'+str(args.sequences[0])+'.txt'))
+    #np.savetxt(r"./pose/kitti_00_gt.txt",data,delimiter=' ') 
 
 
 def compute_pose_error(gt, pred):
@@ -172,6 +193,8 @@ def compute_pose_error(gt, pred):
         RE += np.arctan2(s,c)
 
     return ATE/snippet_length, RE/snippet_length
+
+ 
 
 
 if __name__ == '__main__':

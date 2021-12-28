@@ -38,7 +38,7 @@ parser.add_argument("--img-exts", default=['png', 'jpg', 'bmp'], nargs='*', type
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 '''
-python test_disp.py --pretrained-dispnet ./checkpoints/KITTI-sfm\,epoch_size1000/09-30-11\:38/dispnet_model_best.pth.tar --dataset-dir /data/yangbinchaodata/KITTI-raw/rawdata/ --dataset-list ./kitti_eval/test_files_eigen.txt
+python test_disp.py --pretrained-dispnet /root/yangbinchao/program/xvo/ckpts/KITTI-sfm/12-20-22:32/dispnet_model_best.pth.tar  --dataset-dir /data/yangbinchao_data/KITTI-raw/rawdata/ --dataset-list ./kitti_eval/test_files_eigen.txt
 '''
 
 def log_gt_result(GT, folder, p):  # 保存真值深度
@@ -77,7 +77,7 @@ def main():
         seq_length = int(weights['state_dict']['conv1.0.weight'].size(1)/3)
         print("seq_length为{}".format(seq_length))
 
-        pose_net = PoseExpNet(nb_ref_imgs=seq_length - 1).to(device)
+        pose_net = ShuffleNetV2(nb_ref_imgs=seq_length - 1).to(device)
         pose_net.load_state_dict(weights['state_dict'], strict=False)
 
     dataset_dir = Path(args.dataset_dir)

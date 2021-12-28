@@ -38,7 +38,7 @@ parser.add_argument('--with-pose', action='store_true', help='use pose ground tr
 parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',help='number of data loading workers')
 parser.add_argument('--epochs', default=200, type=int, metavar='N',help='number of total epochs to run')
 parser.add_argument('--epoch-size', default=3000, type=int, metavar='N',help='manual epoch size (will match dataset size if not set)')
-parser.add_argument('-b', '--batch-size', default=4, type=int,metavar='N', help='mini-batch size')
+parser.add_argument('-b', '--batch-size', default=6, type=int,metavar='N', help='mini-batch size')
 parser.add_argument('--lr', '--learning-rate', default=2e-4, type=float,metavar='LR', help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',help='momentum for sgd, alpha parameter for adam')
 parser.add_argument('--beta', default=0.999, type=float, metavar='M',help='beta parameters for adam')
@@ -71,7 +71,7 @@ n_iter = 0
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 w1, w2, w3, w4 = 0.15, 0.85, 0, 0.1 
 # loss_l1, loss_ssim, loss_fsim, loss_smooth
-mixed_precision = True
+mixed_precision = False
 
 def main():
     '''
@@ -95,6 +95,13 @@ def main():
     if args.evaluate:
         args.epochs = 0
     tb_writer = SummaryWriter(args.save_path) 
+    '''
+    打印参数信息
+    ''' 
+    print("=> batch size    BS : {}".format(args.batch_size))
+    print("=> learning rate LR : {}".format(args.lr)) 
+    print("=> epoch size    ES : {}".format(args.epoch_size))
+    print("=> epochs        EP : {}".format(args.epochs))
     '''
     正则化、随机旋转缩放 等数据增强操作
     '''
@@ -160,7 +167,7 @@ def main():
     '''
     print("=> creating model")
     disp_net = model.UNet3Plus_DeepSup_CGM().to(device)  # UNet3Plus_DeepSup_CGM DispNetS
-    pose_exp_net = model.ShuffleNetV2(nb_ref_imgs=args.sequence_length - 1).to(device)  # PoseExpNet ShuffleNetV2
+    pose_exp_net = model.PoseExpNet(nb_ref_imgs=args.sequence_length - 1).to(device)  # PoseExpNet ShuffleNetV2
 
     if args.pretrained_exp_pose:
         print("=> using pre-trained weights for explainabilty and pose net")
