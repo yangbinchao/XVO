@@ -14,10 +14,10 @@ from utils.inverse_warp import inverse_warp
 from .ssim_l1_smooth import ssim, l1, fsimc, smooth
 
 
-w_l1     =   [ 1, 1, 1, 1, 1 ]  
-w_ssim   =   [ 1, 1, 1, 1, 1 ]
-w_fsim   =   [ 1, 1, 1, 1, 1 ]
-w_smooth =   [ 1, 1, 1, 1, 1 ]
+w_l1 = [0.1, 0.8, 1, 0.4, 0.1]
+w_ssim = [0.1, 1.2, 1, 0.6, 0.1]
+w_fsim = [0.1, 0.9, 1, 0.6, 0.1]
+w_smooth = [1, 0.78, 0.25, 0.12, 0.06]
 
 
 def one_scale_loss(tgt_img, ref_imgs, intrinsics, depth, pose, rotation_mode, padding_mode):

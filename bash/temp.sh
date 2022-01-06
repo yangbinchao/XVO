@@ -1,0 +1,2 @@
+cp test_result/depth/kitti_eigen_test/12-13-20:30/2011_09_26-2011_09_26_drive_0023_sync-image_02-data-0000000162_disp.png  \
+    test_img/filter_xiaorong_depth/2011_09_26-2011_09_26_drive_0023_sync-image_02-data-0000000162_12-13-20:30.png

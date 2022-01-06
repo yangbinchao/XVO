@@ -63,7 +63,7 @@ class ShuffleV2Block(nn.Module):
 
 
 class ShuffleNetV2(nn.Module):
-    def __init__(self, input_size=224, n_class=1000, model_size='1.0x', nb_ref_imgs=2):
+    def __init__(self, input_size=224, n_class=1000, model_size='0.5x', nb_ref_imgs=2):
         super(ShuffleNetV2, self).__init__()
         print('model size is ', model_size)
 
@@ -119,27 +119,29 @@ class ShuffleNetV2(nn.Module):
             nn.Conv2d(self.stage_out_channels[-1], 256, 3, 1),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, 2, 1),
-            nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True),
+            #nn.Conv2d(256, 256, 2, 1),
+            #nn.BatchNorm2d(256),
+            #nn.ReLU(inplace=True),
             nn.Conv2d(256, 3*self.nb_ref_imgs, 1, 1)
         )
         self.decouphead_t = nn.Sequential(
             nn.Conv2d(self.stage_out_channels[-1], 256, 3, 1),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
-            nn.Conv2d(256, 256, 2, 1),
-            nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True),
+            #nn.Conv2d(256, 256, 2, 1),
+            #nn.BatchNorm2d(256),
+            #nn.ReLU(inplace=True),
             nn.Conv2d(256, 3*self.nb_ref_imgs, 1, 1)
         )
 
         self.globalpool = nn.AvgPool2d([4,13])
+
         if self.model_size == '2.0x':
             self.dropout = nn.Dropout(0.2)
+
         self.classifier = nn.Sequential(nn.Linear(self.stage_out_channels[-1], n_class, bias=False))
 
-        self.pose_pred = nn.Conv2d(1024, 6*self.nb_ref_imgs, kernel_size=1, padding=0)
+        self.pose_pred = nn.Conv2d(self.stage_out_channels[-1], 6*self.nb_ref_imgs, kernel_size=1, padding=0)
 
         self._initialize_weights()
 
@@ -149,20 +151,20 @@ class ShuffleNetV2(nn.Module):
         input = [target_image]
         input.extend(ref_imgs)
         input = torch.cat(input, 1)
-        
+    # def forward(self, input):    
         x = self.first_conv(input)
         x = self.maxpool(x)
         x = self.features(x)
         x = self.conv_last(x)
-        
-        # x = self.globalpool(x)
+
+        # x = self.globalpool(x)  # 全局平均池化
 
         if self.model_size == '2.0x':
             x = self.dropout(x)
         # x = x.contiguous().view(-1, self.stage_out_channels[-1])  # 强制拷贝一份tensor，让它的布局和从头创建的一模一样，但是两个tensor完全没有联系
         # x = self.classifier(x)
 
-        flag_decoup = True
+        flag_decoup = False
         if flag_decoup :
             pose_r = self.decouphead_r(x) # b c h w
             pose_t = self.decouphead_t(x)
@@ -172,8 +174,8 @@ class ShuffleNetV2(nn.Module):
             pose_r_2 = pose_r[:,3:]
             pose_t_1 = pose_t[:,:3]
             pose_t_2 = pose_t[:,3:]
-            pose_1 = torch.cat((pose_t_1,pose_r_2),1)
-            pose_2 = torch.cat((pose_t_1,pose_r_2),1)
+            pose_1 = torch.cat((pose_t_1,pose_r_1),1)
+            pose_2 = torch.cat((pose_t_2,pose_r_2),1)
             pose = torch.cat((pose_1,pose_2),1)
             # print("=> pose {}".format(pose.size()))
             

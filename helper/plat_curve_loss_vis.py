@@ -15,7 +15,7 @@ from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 from matplotlib.lines import Line2D
 import matplotlib.pyplot as plt
 
-path = "/root/yangbinchao/program/thesis/sfmlearner/checkpoints/KITTI-sfm,epoch_size3000,m0.2/12-07-09:38/progress_log_summary.csv"
+path = "/root/yangbinchao/program/xvo/ckpts/KITTI-sfm/12-20-21:31/progress_log_summary.csv"
 figure_jpg = "./figure.jpg"
 
 with open(path,"r") as csvfile:
@@ -41,9 +41,10 @@ with open(path,"r") as csvfile:
 # print(step)
 # print(train_error)
 
-# line2,=plt.plot(step,train_error,'r--',linewidth=0.8)
-line3,=plt.plot(step,validation_error,'b-',linewidth=0.8)
-# ll=plt.legend([line3,line2],["abs_rel","train_error"],loc='upper right')
+line2,=plt.plot(step,train_error,'b-',linewidth=1.8, linestyle='-')
+#line3,=plt.plot(step,validation_error,'b-',linewidth=0.8)
+ll=plt.legend([line2],["X-VO (msgd) train_error"],loc='upper right')
+#ll=plt.legend([line3,line2],["abs_rel","train_error"],loc='upper right')
 
 '''
 ax1 = plt.gca()

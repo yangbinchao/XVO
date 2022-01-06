@@ -51,7 +51,7 @@ def main():
     # seq_length = int(weights['state_dict']['conv1.0.weight'].size(1)/3)
     # print("注意！seq_length {}".format(seq_length))
     seq_length = 3
-    pose_net = ShuffleNetV2(nb_ref_imgs=seq_length - 1).to(device)
+    pose_net = PoseExpNet(nb_ref_imgs=seq_length - 1).to(device)
     pose_net.load_state_dict(weights['state_dict'], strict=False)  # ybc , map_location={'cuda:1':'cuda:0'}
 
     dataset_dir = Path(args.dataset_dir)
@@ -173,7 +173,7 @@ def main():
             data[i,:,:,-1] = data[i,:,:,-1] + r[:,-1]
         data = data.reshape(-1,12)
         np.savetxt(args.output_dir+'/kitti_odometry_gt/'+str(args.sequences[0])+'.txt',data,delimiter=' ') 
-    print('=> the result save on {}'.format(args.output_dir+'/kitti_odometry_gt/'+str(args.sequences[0])+'.txt'))
+        print('=> the result save on {}'.format(args.output_dir+'/kitti_odometry_gt/'+str(args.sequences[0])+'.txt'))
     #np.savetxt(r"./pose/kitti_00_gt.txt",data,delimiter=' ') 
 
 

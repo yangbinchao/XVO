@@ -36,8 +36,8 @@ parser.add_argument('--with-pose', action='store_true', help='use pose ground tr
                     'You need to store it in text files of 12 columns see data/kitti_raw_loader.py for an example '
                     'Note that for kitti, it is recommend to use odometry train set to test pose')
 parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',help='number of data loading workers')
-parser.add_argument('--epochs', default=200, type=int, metavar='N',help='number of total epochs to run')
-parser.add_argument('--epoch-size', default=3000, type=int, metavar='N',help='manual epoch size (will match dataset size if not set)')
+parser.add_argument('--epochs', default=150, type=int, metavar='N',help='number of total epochs to run')
+parser.add_argument('--epoch-size', default=1000, type=int, metavar='N',help='manual epoch size (will match dataset size if not set)')
 parser.add_argument('-b', '--batch-size', default=6, type=int,metavar='N', help='mini-batch size')
 parser.add_argument('--lr', '--learning-rate', default=2e-4, type=float,metavar='LR', help='initial learning rate')
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',help='momentum for sgd, alpha parameter for adam')

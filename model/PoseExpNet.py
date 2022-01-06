@@ -35,19 +35,26 @@ class PoseExpNet(nn.Module):
         self.conv7 = conv(conv_planes[5], conv_planes[6])
 
         self.pose_pred = nn.Conv2d(conv_planes[6], 6*self.nb_ref_imgs, kernel_size=1, padding=0)
-
-        if self.output_exp:
-            upconv_planes = [256, 128, 64, 32, 16]
-            self.upconv5 = upconv(conv_planes[4],   upconv_planes[0])
-            self.upconv4 = upconv(upconv_planes[0], upconv_planes[1])
-            self.upconv3 = upconv(upconv_planes[1], upconv_planes[2])
-            self.upconv2 = upconv(upconv_planes[2], upconv_planes[3])
-            self.upconv1 = upconv(upconv_planes[3], upconv_planes[4])
-
-            self.predict_mask4 = nn.Conv2d(upconv_planes[1], self.nb_ref_imgs, kernel_size=3, padding=1)
-            self.predict_mask3 = nn.Conv2d(upconv_planes[2], self.nb_ref_imgs, kernel_size=3, padding=1)
-            self.predict_mask2 = nn.Conv2d(upconv_planes[3], self.nb_ref_imgs, kernel_size=3, padding=1)
-            self.predict_mask1 = nn.Conv2d(upconv_planes[4], self.nb_ref_imgs, kernel_size=3, padding=1)
+        
+        self.globalpool = nn.AvgPool2d([1,4])
+        self.decouphead_r = nn.Sequential(
+            nn.Conv2d(256, 256, 1, 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            # nn.Conv2d(256, 256, 2, 1),
+            # nn.BatchNorm2d(256),
+            # nn.ReLU(inplace=True),
+            nn.Conv2d(256, 3*self.nb_ref_imgs, 1, 1)
+        )
+        self.decouphead_t = nn.Sequential(
+            nn.Conv2d(256, 256, 1, 1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True),
+            # nn.Conv2d(256, 256, 2, 1),
+            # nn.BatchNorm2d(256),
+            # nn.ReLU(inplace=True),
+            nn.Conv2d(256, 3*self.nb_ref_imgs, 1, 1)
+        )
 
     def init_weights(self):
         for m in self.modules():
@@ -55,15 +62,13 @@ class PoseExpNet(nn.Module):
                 xavier_uniform_(m.weight.data)
                 if m.bias is not None:
                     zeros_(m.bias)
-    #'''
-    
+
     def forward(self, target_image, ref_imgs):
         assert(len(ref_imgs) == self.nb_ref_imgs)
         input = [target_image]
         input.extend(ref_imgs)
         input = torch.cat(input, 1)
-    #'''
-    #def forward(self, input):
+
         out_conv1 = self.conv1(input)
         out_conv2 = self.conv2(out_conv1)
         out_conv3 = self.conv3(out_conv2)
@@ -72,14 +77,28 @@ class PoseExpNet(nn.Module):
         out_conv6 = self.conv6(out_conv5)
         out_conv7 = self.conv7(out_conv6)
 
-        pose = self.pose_pred(out_conv7)
-        pose = pose.mean(3).mean(2)
-        pose = 0.01 * pose.view(pose.size(0), self.nb_ref_imgs, 6)
-
-        if self.training:
-            return pose # [exp_mask1, exp_mask2, exp_mask3, exp_mask4],
+        
+        flag_decoup = False
+        if flag_decoup :
+            out_conv7 = self.globalpool(out_conv7)
+            pose_r = self.decouphead_r(out_conv7) # b c h w
+            pose_t = self.decouphead_t(out_conv7)
+            pose_r = pose_r.mean(3).mean(2)  # [2, 6]
+            pose_t = pose_t.mean(3).mean(2)
+            pose_r_1 = pose_r[:,:3]
+            pose_r_2 = pose_r[:,3:]
+            pose_t_1 = pose_t[:,:3]
+            pose_t_2 = pose_t[:,3:]
+            pose_1 = torch.cat((pose_t_1,pose_r_1),1)
+            pose_2 = torch.cat((pose_t_2,pose_r_2),1)
+            pose = torch.cat((pose_1,pose_2),1)
+            
         else:
-            return pose
+            pose = self.pose_pred(out_conv7)
+            pose = pose.mean(3).mean(2)
+
+        pose = 0.01 * pose.view(pose.size(0), self.nb_ref_imgs, 6)
+        return pose
 
 
 if __name__ == '__main__':
